@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Memories Gallery</title>
+    <style>
+        :root {
+            --primary-color: #2a2a2a;
+            --accent-color: #f5f5f5;
+            --dark-bg: #0a0a0a;
+            --transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+            /* Add responsive variables */
+            --slider-width-desktop: 200px;
+            --slider-height-desktop: 300px;
+            --slider-distance-desktop: 350px;
+            --slider-width-tablet: 150px;
+            --slider-height-tablet: 225px;
+            --slider-distance-tablet: 260px;
+            --slider-width-mobile: 120px;
+            --slider-height-mobile: 180px;
+            --slider-distance-mobile: 200px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: var(--dark-bg);
+            overflow: hidden;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .slider-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .slider {
+            position: relative;
+            width: var(--slider-width-desktop);
+            height: var(--slider-height-desktop);
+            transform-style: preserve-3d;
+        }
+
+        .slider span {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform-origin: center;
+            transform-style: preserve-3d;
+            transform: rotateY(calc(var(--i)*45deg)) translateZ(var(--slider-distance-desktop));
+            transition: var(--transition);
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3));
+        }
+
+        .slider span img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+            transition: var(--transition), filter 0.5s ease;
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+
+        .slider.has-active span img:not(.active) {
+            filter: blur(5px) brightness(0.5);
+            transform: scale(0.9);
+        }
+
+        .slider span:hover img {
+            transform: scale(1.05);
+            border-color: rgba(255,255,255,0.3);
+        }
+
+        .slider span img.active {
+            transform: scale(1.3) !important;
+            z-index: 100;
+            box-shadow: 0 0 30px rgba(255,255,255,0.2);
+            filter: brightness(1.2);
+        }
+
+        .slider span img.fullscreen {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(2.5) !important;
+            z-index: 1000;
+            max-width: 90vw;
+            max-height: 90vh;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            backdrop-filter: blur(15px);
+            opacity: 0;
+            transition: var(--transition);
+            pointer-events: none;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 999;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px);
+        }
+
+        .title {
+            position: fixed;
+            top: 30px;
+            color: var(--accent-color);
+            font-size: 1.5rem;
+            font-weight: 300;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0.8;
+        }
+
+        .caption {
+            position: fixed;
+            bottom: 30px;
+            color: var(--accent-color);
+            font-size: 1rem;
+            opacity: 0;
+            transition: var(--transition);
+            text-align: center;
+            width: 100%;
+            padding: 0 20px;
+        }
+
+        .caption.active {
+            opacity: 0.7;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 10;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-color);
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .normalize-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            color: var(--accent-color);
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1001;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .footer-credit {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--accent-color);
+            font-size: 0.9rem;
+            opacity: 0.7;
+            text-align: center;
+            width: 100%;
+            padding: 10px;
+            z-index: 10;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+        }
+
+        .description-box {
+            position: fixed;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            color: var(--accent-color);
+            max-width: 600px;
+            opacity: 0;
+            transition: var(--transition);
+            z-index: 1000;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+
+        .description-box.active {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .description-box h3 {
+            color: var(--accent-color);
+            margin-bottom: 10px;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        .description-box p {
+            font-size: 0.9em;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        /* Tablet styles */
+        @media (max-width: 1024px) {
+            .slider {
+                width: var(--slider-width-tablet);
+                height: var(--slider-height-tablet);
+            }
+
+            .slider span {
+                transform: rotateY(calc(var(--i)*45deg)) translateZ(var(--slider-distance-tablet));
+            }
+
+            .title {
+                font-size: 1.2rem;
+            }
+
+            .control-btn {
+                width: 40px;
+                height: 40px;
+            }
+
+            .description-box {
+                max-width: 80%;
+                padding: 15px;
+                bottom: 100px;
+            }
+        }
+
+        /* Mobile styles */
+        @media (max-width: 768px) {
+            .slider {
+                width: var(--slider-width-mobile);
+                height: var(--slider-height-mobile);
+            }
+
+            .slider span {
+                transform: rotateY(calc(var(--i)*45deg)) translateZ(var(--slider-distance-mobile));
+            }
+
+            .title {
+                font-size: 1rem;
+                top: 20px;
+            }
+
+            .control-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 0.8rem;
+            }
+
+            .controls {
+                gap: 12px;
+                bottom: 40px;
+            }
+
+            .description-box {
+                max-width: 90%;
+                padding: 12px;
+                bottom: 90px;
+            }
+
+            .description-box h3 {
+                font-size: 1em;
+            }
+
+            .description-box p {
+                font-size: 0.8em;
+            }
+
+            .normalize-btn {
+                padding: 8px 16px;
+                font-size: 0.8rem;
+            }
+
+            .footer-credit {
+                font-size: 0.8rem;
+                padding: 8px;
+            }
+        }
+
+        /* Touch device optimizations */
+        @media (hover: none) {
+            .slider span:hover img {
+                transform: none;
+            }
+
+            .control-btn:hover {
+                transform: none;
+            }
+
+            .normalize-btn:hover {
+                transform: none;
+            }
+        }
+
+        /* Add these styles in your existing <style> tag */
+        #autoIntroduceBtn {
+            position: relative;
+            overflow: hidden;
+        }
+
+        #autoIntroduceBtn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.2), transparent);
+            transform: translateX(-100%);
+        }
+
+        #autoIntroduceBtn.active::after {
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            100% {
+                transform: translateX(100%);
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="slider-container">
+        <h1 class="title"> my Inspiration Gallery</h1>
+        <button class="normalize-btn" id="normalizeBtn">
+            <i class="fas fa-sync-alt"></i> Reset
+        </button>
+        <div class="slider">
+            <span style="--i:0">
+                <img src="ratan tata.jpg" class="img" data-caption="Industrial Legend" alt="Ratan Tata">
+            </span>
+            <span style="--i:1">
+                <img src="virat.jpeg" class="img" data-caption="Cricket Icon" alt="Virat Kohli">
+            </span>
+            <span style="--i:2">
+                <img src="SRK cutie.jpeg" class="img" data-caption="Bollywood King" alt="Shah Rukh Khan">
+            </span>
+            <span style="--i:3">
+                <img src="Sandeep sir.jpeg" class="img" data-caption="Motivational Speaker" alt="Sandeep Maheshwari">
+            </span>
+            <span style="--i:4">
+                <img src="Gautam Adani.jpeg" class="img" data-caption="Business Magnate" alt="Gautam Adani">
+            </span>
+            <span style="--i:5">
+                <img src="ambani.jpeg" class="img" data-caption="Industry Tycoon" alt="Mukesh Ambani">
+            </span>
+            <span style="--i:6">
+                <img src="aks.jpeg" class="img" data-caption="Bollywood Star" alt="Akshay Kumar">
+            </span>
+            <span style="--i:7">
+                <img src="Cristiano Ronaldo.jpeg" class="img" data-caption="Football Legend" alt="Cristiano Ronaldo">
+            </span>
+        </div>
+        <div class="controls">
+            <button class="control-btn" id="backwardBtn">
+                <i class="fas fa-backward"></i>
+            </button>
+            <button class="control-btn" id="playPauseBtn">
+                <i class="fas fa-pause"></i>
+            </button>
+            <button class="control-btn" id="forwardBtn">
+                <i class="fas fa-forward"></i>
+            </button>
+            <button class="control-btn" id="autoIntroduceBtn" title="Auto Introduce">
+                <i class="fas fa-magic"></i>
+            </button>
+        </div>
+        <div class="overlay"></div>
+        <div class="caption"></div>
+        <div class="description-box"></div>
+    </div>
+    <div class="footer-credit">Designed by Govind | Generated by AI</div>
+
+    <script>
+        const images = document.querySelectorAll('.img');
+        const slider = document.querySelector('.slider');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const forwardBtn = document.getElementById('forwardBtn');
+        const backwardBtn = document.getElementById('backwardBtn');
+        const overlay = document.querySelector('.overlay');
+        const caption = document.querySelector('.caption');
+        const normalizeBtn = document.getElementById('normalizeBtn');
+
+        let isPlaying = true;
+        let currentRotation = 0;
+        let animationFrameId = null;
+        let lastTime = 0;
+        let rotationSpeed = 360 / 30; // 30 seconds per full rotation
+        let activeImage = null;
+        let isFullscreen = false;
+
+        // Add these variables after your existing variables
+        let isAutoIntroducing = false;
+        let autoIntroduceInterval;
+        let currentImageIndex = 0;
+
+        // Image descriptions with consistent filenames
+        const imageDescriptions = {
+            'ratan tata.jpg': {
+                title: 'Ratan Tata',
+                description: 'Legendary Indian industrialist and philanthropist. Former Chairman of Tata Group. Known for his integrity and vision in global business expansion.'
+            },
+            'virat.jpeg': {
+                title: 'Virat Kohli',
+                description: 'Cricket superstar and former Indian captain. Holder of multiple batting records. Known for his aggressive style and fitness revolution in cricket.'
+            },
+            'SRK cutie.jpeg': {
+                title: 'Shah Rukh Khan',
+                description: 'Bollywood megastar with over 30 years in film industry. Known as "King of Romance" and successful entrepreneur with multiple business ventures.'
+            },
+            'Sandeep sir.jpeg': {
+                title: 'Sandeep Maheshwari',
+                description: 'Renowned motivational speaker and entrepreneur. Founder of ImagesBazaar. Inspires millions through his practical life lessons and YouTube content.'
+            },
+            'Gautam Adani.jpeg': {
+                title: 'Gautam Adani',
+                description: 'Self-made billionaire and chairman of Adani Group. Leader in infrastructure development with interests in ports, energy, and logistics.'
+            },
+            'ambani.jpeg': {
+                title: 'Mukesh Ambani',
+                description: 'Chairman of Reliance Industries. Transformed Indian telecom sector with Jio. Leader in petrochemicals, retail, and digital services.'
+            },
+            'aks.jpeg': {
+                title: 'Akshay Kumar',
+                description: 'Versatile Bollywood actor known for discipline and social message films. National award winner with diverse filmography across genres.'
+            },
+            'Cristiano Ronaldo.jpeg': {
+                title: 'Cristiano Ronaldo',
+                description: 'Football legend with 5 Ballon d\'Or awards. Known for exceptional work ethic and goal-scoring records across top European leagues.'
+            }
+        };
+
+        // Animation system
+        function animate(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const delta = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+
+            if (isPlaying) {
+                currentRotation += rotationSpeed * delta;
+                currentRotation %= 360;
+                updateSliderRotation();
+            }
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        function updateSliderRotation() {
+            slider.style.transform = `perspective(1200px) rotateY(${currentRotation}deg)`;
+        }
+
+        function startRotation() {
+            isPlaying = true;
+            if (!animationFrameId) {
+                lastTime = 0;
+                animationFrameId = requestAnimationFrame(animate);
+            }
+        }
+
+        function stopRotation() {
+            isPlaying = false;
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+        }
+
+        // Image interactions
+        function handleImageClick(img) {
+            if (img.classList.contains('fullscreen')) {
+                resetImage(img);
+            } else if (img.classList.contains('active')) {
+                enterFullscreen(img);
+            } else {
+                activateImage(img);
+            }
+        }
+
+        function activateImage(img) {
+            if (activeImage) resetImage(activeImage);
+            stopRotation();
+            
+            img.classList.add('active');
+            slider.classList.add('has-active');
+            activeImage = img;
+
+            // Get filename from alt text instead of src
+            const imgName = img.alt.toLowerCase().replace(/\s+/g, ' ').trim();
+            console.log('Image name:', imgName); // Debug line
+            
+            const descriptionBox = document.querySelector('.description-box');
+            let description;
+
+            // Match description based on alt text
+            switch(imgName) {
+                case 'ratan tata':
+                    description = {
+                        title: 'Ratan Tata',
+                        description: 'Legendary Indian industrialist and philanthropist. Former Chairman of Tata Group. Known for his integrity and vision in global business expansion.'
+                    };
+                    break;
+                case 'virat kohli':
+                    description = {
+                        title: 'Virat Kohli',
+                        description: 'Cricket superstar and former Indian captain. Holder of multiple batting records. Known for his aggressive style and fitness revolution in cricket.'
+                    };
+                    break;
+                case 'shah rukh khan':
+                    description = {
+                        title: 'Shah Rukh Khan',
+                        description: 'Bollywood megastar with over 30 years in film industry. Known as "King of Romance" and successful entrepreneur with multiple business ventures.'
+                    };
+                    break;
+                case 'sandeep maheshwari':
+                    description = {
+                        title: 'Sandeep Maheshwari',
+                        description: 'Renowned motivational speaker and entrepreneur. Founder of ImagesBazaar. Inspires millions through his practical life lessons and YouTube content.'
+                    };
+                    break;
+                case 'gautam adani':
+                    description = {
+                        title: 'Gautam Adani',
+                        description: 'Self-made billionaire and chairman of Adani Group. Leader in infrastructure development with interests in ports, energy, and logistics.'
+                    };
+                    break;
+                case 'mukesh ambani':
+                    description = {
+                        title: 'Mukesh Ambani',
+                        description: 'Chairman of Reliance Industries. Transformed Indian telecom sector with Jio. Leader in petrochemicals, retail, and digital services.'
+                    };
+                    break;
+                case 'akshay kumar':
+                    description = {
+                        title: 'Akshay Kumar',
+                        description: 'Versatile Bollywood actor known for discipline and social message films. National award winner with diverse filmography across genres.'
+                    };
+                    break;
+                case 'cristiano ronaldo':
+                    description = {
+                        title: 'Cristiano Ronaldo',
+                        description: 'Football legend with 5 Ballon d\'Or awards. Known for exceptional work ethic and goal-scoring records across top European leagues.'
+                    };
+                    break;
+                default:
+                    description = {
+                        title: img.dataset.caption,
+                        description: 'A legendary personality who has inspired millions through their work and achievements.'
+                    };
+            }
+
+            descriptionBox.innerHTML = `
+                <h3>${description.title}</h3>
+                <p>${description.description}</p>
+            `;
+            descriptionBox.classList.add('active');
+        }
+
+        function enterFullscreen(img) {
+            img.classList.add('fullscreen');
+            overlay.classList.add('active');
+            caption.textContent = img.dataset.caption;
+            caption.classList.add('active');
+            isFullscreen = true;
+            
+            // Adjust fullscreen scale based on device
+            const scale = window.innerWidth <= 768 ? 1.8 : 2.5;
+            img.style.transform = `translate(-50%, -50%) scale(${scale}) !important`;
+        }
+
+        function resetImage(img) {
+            img.classList.remove('fullscreen', 'active');
+            overlay.classList.remove('active');
+            caption.classList.remove('active');
+            slider.classList.remove('has-active');
+            document.querySelector('.description-box').classList.remove('active');
+            activeImage = null;
+            isFullscreen = false;
+            if (isPlaying) startRotation();
+        }
+
+        // Controls
+        function togglePlayPause() {
+            isPlaying = !isPlaying;
+            playPauseBtn.innerHTML = isPlaying 
+                ? '<i class="fas fa-pause"></i>' 
+                : '<i class="fas fa-play"></i>';
+            if (isPlaying) startRotation();
+            else stopRotation();
+        }
+
+        function rotateForward() {
+            stopRotation();
+            currentRotation -= 45;
+            currentRotation = (currentRotation % 360 + 360) % 360;
+            updateSliderRotation();
+        }
+
+        function rotateBackward() {
+            stopRotation();
+            currentRotation += 45;
+            currentRotation = (currentRotation % 360 + 360) % 360;
+            updateSliderRotation();
+        }
+
+        function normalizeEverything() {
+            if (isAutoIntroducing) {
+                stopAutoIntroduce();
+            }
+            images.forEach(img => resetImage(img));
+            currentRotation = 0;
+            isPlaying = true;
+            startRotation();
+            playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+        }
+
+        // Add these touch event handlers in your script section
+        function initializeTouchEvents() {
+            let touchStartX = 0;
+            let touchEndX = 0;
+            
+            document.addEventListener('touchstart', e => {
+                touchStartX = e.changedTouches[0].screenX;
+            }, false);
+
+            document.addEventListener('touchend', e => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            }, false);
+
+            function handleSwipe() {
+                const swipeThreshold = 50;
+                const swipeLength = touchEndX - touchStartX;
+                
+                if (Math.abs(swipeLength) > swipeThreshold) {
+                    if (swipeLength > 0) {
+                        rotateBackward();
+                    } else {
+                        rotateForward();
+                    }
+                }
+            }
+        }
+
+        // Update animation speed based on device
+        function getRotationSpeed() {
+            if (window.innerWidth <= 768) {
+                return 360 / 20; // Faster on mobile
+            }
+            return 360 / 30; // Normal speed on desktop
+        }
+
+        // Add this new function for auto introduction
+        function startAutoIntroduce() {
+            if (isAutoIntroducing) return;
+            
+            isAutoIntroducing = true;
+            currentImageIndex = 0;
+            stopRotation();
+            
+            function introduceNextImage() {
+                if (currentImageIndex >= images.length) {
+                    stopAutoIntroduce();
+                    return;
+                }
+
+                // Reset previous image
+                if (activeImage) resetImage(activeImage);
+
+                // Rotate to current image
+                currentRotation = -(currentImageIndex * 45);
+                updateSliderRotation();
+
+                // Activate current image
+                const currentImage = images[currentImageIndex];
+                activateImage(currentImage);
+
+                currentImageIndex++;
+            }
+
+            // Start the introduction sequence
+            introduceNextImage();
+            autoIntroduceInterval = setInterval(introduceNextImage, 2000);
+        }
+
+        function stopAutoIntroduce() {
+            isAutoIntroducing = false;
+            clearInterval(autoIntroduceInterval);
+            if (activeImage) resetImage(activeImage);
+            startRotation();
+        }
+
+        // Add a new button to the controls div
+        document.querySelector('.controls').insertAdjacentHTML('beforeend', `
+            <button class="control-btn" id="autoIntroduceBtn" title="Auto Introduce">
+                <i class="fas fa-magic"></i>
+            </button>
+        `);
+
+        // Add event listener for the new button
+        document.getElementById('autoIntroduceBtn').addEventListener('click', () => {
+            if (isAutoIntroducing) {
+                stopAutoIntroduce();
+            } else {
+                startAutoIntroduce();
+            }
+        });
+
+        // Event listeners
+        images.forEach(img => {
+            img.addEventListener('click', () => handleImageClick(img));
+            img.onerror = () => {
+                img.src = `https://source.unsplash.com/600x400/?${encodeURIComponent(img.dataset.caption)}`;
+                img.classList.add('image-error');
+            };
+        });
+
+        playPauseBtn.addEventListener('click', togglePlayPause);
+        forwardBtn.addEventListener('click', rotateForward);
+        backwardBtn.addEventListener('click', rotateBackward);
+        normalizeBtn.addEventListener('click', normalizeEverything);
+        overlay.addEventListener('click', () => isFullscreen && resetImage(activeImage));
+
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case 'ArrowLeft': rotateBackward(); break;
+                case 'ArrowRight': rotateForward(); break;
+                case ' ': togglePlayPause(); break;
+                case 'Escape': resetImage(activeImage); break;
+                case 'n': normalizeEverything(); break;
+            }
+        });
+
+        // Add this to your initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeTouchEvents();
+            rotationSpeed = getRotationSpeed();
+            
+            // Handle orientation change
+            window.addEventListener('orientationchange', () => {
+                setTimeout(() => {
+                    rotationSpeed = getRotationSpeed();
+                    updateSliderRotation();
+                }, 100);
+            });
+        });
+
+        // Initialize
+        startRotation();
+    </script>
+</body>
+</html>
